@@ -18,7 +18,7 @@
     let currentId = null;
 
     async function nextQuestion() {
-      const res = await fetch("https://SEU_USUARIO.pythonanywhere.com/api/next");
+      const res = await fetch("https://matematicando.pythonanywhere.com/api/next");
       const data = await res.json();
       currentId = data.id;
       document.getElementById("expression").innerText = data.expr;
@@ -29,7 +29,7 @@
     async function checkAnswer() {
       if (currentId === null) return;
       const ans = document.getElementById("answer").value;
-      const res = await fetch("https://SEU_USUARIO.pythonanywhere.com/api/check", {
+      const res = await fetch("https://matematicando.pythonanywhere.com/api/check", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({id: currentId, answer: ans})
@@ -53,6 +53,7 @@
   </script>
 </body>
 </html>
+
 
 
 
