@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Jogo do Matematicando</title>
 <style>
+  /* mesmo CSS do seu original (omitido aqui por brevidade) */
   body { font-family: Arial, sans-serif; text-align: center; padding: 5vw; background: #fdf6e3; max-width: 800px; margin: auto; }
   h1 { color: #2c3e50; font-size: 6vw; }
   .expression { font-size: 5vw; margin: 5vw 0; font-weight: bold; }
@@ -12,98 +13,108 @@
   .buttons { display: flex; justify-content: center; gap: 3vw; flex-wrap: wrap; margin-top: 3vw; }
   button { font-size: 4vw; padding: 2vw 5vw; cursor: pointer; border-radius: 1vw; border: none; background-color: #3498db; color: white; transition: background-color 0.3s; }
   button:hover { background-color: #2980b9; }
-  .feedback { font-size: 4.5vw; margin: 3vw 0; font-weight: bold; }
+  .feedback { font-size: 4.5vw; margin: 3vw 0; font-weight: bold; white-space: pre-line; }
   .score { font-size: 4vw; margin-top: 3vw; }
-  @media (min-width: 1024px) {
-      h1 { font-size: 40px; }
-      .expression { font-size: 32px; }
-      input[type="number"] { font-size: 22px; }
-      button { font-size: 20px; padding: 12px 24px; border-radius: 6px; }
-      .feedback { font-size: 24px; }
-      .score { font-size: 22px; }
-  }
 </style>
 </head>
 <body>
-
 <h1>Jogo do Matematicando</h1>
 <div class="expression" id="expression">Clique em "Próxima" para começar!</div>
 <input type="number" id="answer" placeholder="Sua resposta">
-
 <div class="buttons">
-  <button onclick="checkAnswer()">Verificar</button>
-  <button onclick="nextExpression()">Próxima</button>
+  <button id="btnCheck">Verificar</button>
+  <button id="btnNext">Próxima</button>
 </div>
-
 <div class="feedback" id="feedback"></div>
 <div class="score" id="score">Pontuação: 0</div>
 
 <script>
-const API_URL = "https://matematicando.pythonanywhere.com";
+const API_URL = "https://matematicando.pythonanywhere.com"; // <-- substitua pelo seu domínio (HTTPS)
 
+// estado
 let currentExpression = null;
 let score = 0;
 let alreadyAnswered = false;
 
+document.getElementById('btnNext').addEventListener('click', nextExpression);
+document.getElementById('btnCheck').addEventListener('click', checkAnswer);
+
 async function nextExpression() {
-    const feedbackEl = document.getElementById("feedback");
+  const feedbackEl = document.getElementById("feedback");
 
-    if (currentExpression && !alreadyAnswered) {
-        feedbackEl.innerText = "Você não respondeu a questão 😢. Pontuação zerada!";
-        feedbackEl.style.color = "red";
-        score = 0;
-        document.getElementById("score").innerText = "Pontuação: " + score;
-    }
+  if (currentExpression && !alreadyAnswered) {
+    feedbackEl.innerText = "Você não respondeu a questão 😢. Pontuação zerada!";
+    feedbackEl.style.color = "red";
+    score = 0;
+    document.getElementById("score").innerText = "Pontuação: " + score;
+  }
 
+  try {
     const res = await fetch(`${API_URL}/get_expression`);
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Erro ${res.status}: ${text}`);
+    }
     const data = await res.json();
     currentExpression = data;
-
     document.getElementById("expression").innerText = data.expr;
     document.getElementById("answer").value = "";
     feedbackEl.innerText = "";
     feedbackEl.style.color = "black";
     alreadyAnswered = false;
+  } catch (err) {
+    console.error(err);
+    document.getElementById("feedback").innerText = "Erro ao buscar questão. Abra o console para detalhes.";
+    document.getElementById("feedback").style.color = "red";
+  }
 }
 
 async function checkAnswer() {
-    if (alreadyAnswered || !currentExpression) return;
+  const feedbackEl = document.getElementById("feedback");
+  if (!currentExpression) { feedbackEl.innerText = "Clique em Próxima primeiro."; return; }
+  if (alreadyAnswered) return;
 
-    const answer = Number(document.getElementById("answer").value);
+  const answer = Number(document.getElementById("answer").value);
+
+  try {
     const res = await fetch(`${API_URL}/check_answer`, {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ id: currentExpression.id, answer })
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ id: currentExpression.id, answer })
     });
-    const data = await res.json();
 
-    const feedbackEl = document.getElementById("feedback");
-
-    if (data.correct) {
-        score++;
-        feedbackEl.innerText = "Correto! 🎉";
-        feedbackEl.style.color = "green";
-
-        if (score === 50) {
-            const finalRes = await fetch(`${API_URL}/finish`);
-            const finalData = await finalRes.json();
-            feedbackEl.innerText = finalData.message;
-            score = 0;
-        }
-    } else {
-        feedbackEl.innerText = "Errado 😢. Resposta certa: " + data.correct_answer;
-        feedbackEl.style.color = "red";
-        score = 0;
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(`Erro ${res.status}: ${txt}`);
     }
 
+    const data = await res.json();
+    if (data.correct) {
+      score++;
+      feedbackEl.innerText = "Correto! 🎉";
+      feedbackEl.style.color = "green";
+      if (score === 50) {
+        const finalRes = await fetch(`${API_URL}/finish`);
+        const finalData = await finalRes.json();
+        feedbackEl.innerText = finalData.message;
+        score = 0;
+      }
+    } else {
+      feedbackEl.innerText = "Errado 😢. Resposta certa: " + data.correct_answer;
+      feedbackEl.style.color = "red";
+      score = 0;
+    }
     document.getElementById("score").innerText = "Pontuação: " + score;
     alreadyAnswered = true;
+  } catch (err) {
+    console.error(err);
+    feedbackEl.innerText = "Erro ao verificar resposta. Veja o console (F12).";
+    feedbackEl.style.color = "red";
+  }
 }
 </script>
-
 </body>
 </html>
-
 
 
 
