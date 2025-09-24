@@ -1,58 +1,110 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Matematicando</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jogo do Matematicando</title>
+<style>
+  body { font-family: Arial, sans-serif; text-align: center; padding: 5vw; background: #fdf6e3; max-width: 800px; margin: auto; }
+  h1 { color: #2c3e50; font-size: 6vw; }
+  .expression { font-size: 5vw; margin: 5vw 0; font-weight: bold; }
+  input[type="number"] { font-size: 4.5vw; padding: 2vw; width: 60%; max-width: 250px; text-align: center; }
+  .buttons { display: flex; justify-content: center; gap: 3vw; flex-wrap: wrap; margin-top: 3vw; }
+  button { font-size: 4vw; padding: 2vw 5vw; cursor: pointer; border-radius: 1vw; border: none; background-color: #3498db; color: white; transition: background-color 0.3s; }
+  button:hover { background-color: #2980b9; }
+  .feedback { font-size: 4.5vw; margin: 3vw 0; font-weight: bold; }
+  .score { font-size: 4vw; margin-top: 3vw; }
+  @media (min-width: 1024px) {
+      h1 { font-size: 40px; }
+      .expression { font-size: 32px; }
+      input[type="number"] { font-size: 22px; }
+      button { font-size: 20px; padding: 12px 24px; border-radius: 6px; }
+      .feedback { font-size: 24px; }
+      .score { font-size: 22px; }
+  }
+</style>
 </head>
 <body>
-  <h1>Jogo do Matematicando</h1>
-  <div id="expression">Clique em "Próxima" para começar!</div>
-  <input id="answer" type="number" placeholder="Sua resposta">
-  <button onclick="nextQuestion()">Próxima</button>
+
+<h1>Jogo do Matematicando</h1>
+<div class="expression" id="expression">Clique em "Próxima" para começar!</div>
+<input type="number" id="answer" placeholder="Sua resposta">
+
+<div class="buttons">
   <button onclick="checkAnswer()">Verificar</button>
-  <div id="feedback"></div>
-  <div id="score">Pontuação: 0</div>
+  <button onclick="nextExpression()">Próxima</button>
+</div>
 
-  <script>
-    let currentId = null;
+<div class="feedback" id="feedback"></div>
+<div class="score" id="score">Pontuação: 0</div>
 
-    async function nextQuestion() {
-      const res = await fetch("https://matematicando.pythonanywhere.com/api/next");
-      const data = await res.json();
-      currentId = data.id;
-      document.getElementById("expression").innerText = data.expr;
-      document.getElementById("answer").value = "";
-      document.getElementById("feedback").innerText = "";
+<script>
+const API_URL = "https://matematicando.pythonanywhere.com"; // <-- TROQUE pelo seu domínio do PythonAnywhere
+
+let currentExpression = null;
+let score = 0;
+let alreadyAnswered = false;
+
+async function nextExpression() {
+    const feedbackEl = document.getElementById("feedback");
+
+    if (currentExpression && !alreadyAnswered) {
+        feedbackEl.innerText = "Você não respondeu a questão 😢. Pontuação zerada!";
+        feedbackEl.style.color = "red";
+        score = 0;
+        document.getElementById("score").innerText = "Pontuação: " + score;
     }
 
-    async function checkAnswer() {
-      if (currentId === null) return;
-      const ans = document.getElementById("answer").value;
-      const res = await fetch("https://matematicando.pythonanywhere.com/api/check", {
+    const res = await fetch(`${API_URL}/get_expression`);
+    const data = await res.json();
+    currentExpression = data;
+
+    document.getElementById("expression").innerText = data.expr;
+    document.getElementById("answer").value = "";
+    feedbackEl.innerText = "";
+    feedbackEl.style.color = "black";
+    alreadyAnswered = false;
+}
+
+async function checkAnswer() {
+    if (alreadyAnswered || !currentExpression) return;
+
+    const answer = Number(document.getElementById("answer").value);
+    const res = await fetch(`${API_URL}/check_answer`, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({id: currentId, answer: ans})
-      });
-      const data = await res.json();
-      if (data.correct) {
-        if (data.message === "all_done") {
-          document.getElementById("feedback").innerText =
-            "🎊 Você acertou todas! Código: " + data.codigo;
-          document.getElementById("score").innerText = "Pontuação: 0";
-        } else {
-          document.getElementById("feedback").innerText = "Correto!";
-          document.getElementById("score").innerText = "Pontuação: " + data.score;
+        body: JSON.stringify({ id: currentExpression.id, answer })
+    });
+    const data = await res.json();
+
+    const feedbackEl = document.getElementById("feedback");
+
+    if (data.correct) {
+        score++;
+        feedbackEl.innerText = "Correto! 🎉";
+        feedbackEl.style.color = "green";
+
+        if (score === 50) {
+            const finalRes = await fetch(`${API_URL}/finish`);
+            const finalData = await finalRes.json();
+            feedbackEl.innerText = finalData.message;
+            score = 0;
         }
-      } else {
-        document.getElementById("feedback").innerText = "Errado. Resposta: " + data.expected;
-        document.getElementById("score").innerText = "Pontuação: " + data.score;
-      }
-      currentId = null;
+    } else {
+        feedbackEl.innerText = "Errado 😢. Resposta certa: " + data.correct_answer;
+        feedbackEl.style.color = "red";
+        score = 0;
     }
-  </script>
+
+    document.getElementById("score").innerText = "Pontuação: " + score;
+    alreadyAnswered = true;
+}
+</script>
+
 </body>
 </html>
+
+
 
 
 
