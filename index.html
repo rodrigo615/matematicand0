@@ -94,10 +94,9 @@ let currentExpression = null;
 let score = 0;
 let alreadyAnswered = false;
 
-// Substitua pelo seu domínio no PythonAnywhere:
 const SERVER = "https://matematicando.pythonanywhere.com";
 
-// Pega uma questão do servidor
+// Pega uma questão
 async function nextExpression() {
     const feedbackEl = document.getElementById("feedback");
 
@@ -120,7 +119,7 @@ async function nextExpression() {
     alreadyAnswered = false;
 }
 
-// Verifica resposta no servidor
+// Verifica resposta
 async function checkAnswer() {
     if (alreadyAnswered || !currentExpression) return;
 
@@ -139,7 +138,6 @@ async function checkAnswer() {
         feedbackEl.innerText = "Correto! 🎉";
         feedbackEl.style.color = "green";
 
-        // Caso tenha acertado tudo
         if (score >= 50) {
             const codeRes = await fetch(`${SERVER}/codigo`);
             const codeData = await codeRes.json();
@@ -160,17 +158,3 @@ async function checkAnswer() {
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
