@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Matematicando</title>
+</head>
+<body>
+  <h1>Jogo do Matematicando</h1>
+  <div id="expression">Clique em "Próxima" para começar!</div>
+  <input id="answer" type="number" placeholder="Sua resposta">
+  <button onclick="nextQuestion()">Próxima</button>
+  <button onclick="checkAnswer()">Verificar</button>
+  <div id="feedback"></div>
+  <div id="score">Pontuação: 0</div>
+
+  <script>
+    let currentId = null;
+
+    async function nextQuestion() {
+      const res = await fetch("https://SEU_USUARIO.pythonanywhere.com/api/next");
+      const data = await res.json();
+      currentId = data.id;
+      document.getElementById("expression").innerText = data.expr;
+      document.getElementById("answer").value = "";
+      document.getElementById("feedback").innerText = "";
+    }
+
+    async function checkAnswer() {
+      if (currentId === null) return;
+      const ans = document.getElementById("answer").value;
+      const res = await fetch("https://SEU_USUARIO.pythonanywhere.com/api/check", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({id: currentId, answer: ans})
+      });
+      const data = await res.json();
+      if (data.correct) {
+        if (data.message === "all_done") {
+          document.getElementById("feedback").innerText =
+            "🎊 Você acertou todas! Código: " + data.codigo;
+          document.getElementById("score").innerText = "Pontuação: 0";
+        } else {
+          document.getElementById("feedback").innerText = "Correto!";
+          document.getElementById("score").innerText = "Pontuação: " + data.score;
+        }
+      } else {
+        document.getElementById("feedback").innerText = "Errado. Resposta: " + data.expected;
+        document.getElementById("score").innerText = "Pontuação: " + data.score;
+      }
+      currentId = null;
+    }
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
